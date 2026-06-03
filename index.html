@@ -9,7 +9,9 @@
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background: #ebf0f5; color: #1a1a2e; min-height: 100vh;
+    font-size: 16px; -webkit-text-size-adjust: 100%; scroll-behavior: smooth;
   }
+  input, button, select, textarea { font-family: inherit; font-size: inherit; }
   .header {
     background: #fff; border-bottom: 1px solid #dce1e8; padding: 16px 24px;
     display: flex; justify-content: space-between; align-items: center;
@@ -66,7 +68,8 @@
   .player-row.mate + .player-row.mate { margin-top: -12px; }
   .player-row.mate:last-child { margin-bottom: -12px; }
   .player-row-grid { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 10px; align-items: end; }
-  @media (max-width: 500px) { .player-row-grid { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 600px) { .player-row-grid { grid-template-columns: 1fr 1fr 1fr; } }
+  @media (max-width: 400px) { .player-row-grid { grid-template-columns: 1fr 1fr; } }
   .player-row-grid .field { display: flex; flex-direction: column; gap: 4px; }
   .player-row-grid .field label { font-size: 12px; font-weight: 600; color: #475569; }
   .player-row-grid input[type="number"] {
@@ -79,7 +82,9 @@
   .player-row-grid input[type="checkbox"] { width: 22px; height: 22px; cursor: pointer; accent-color: #16a34a; min-height: 44px; min-width: 44px; }
   .player-row .player-name-label { font-size: 14px; font-weight: 700; color: #1e293b; margin-bottom: 8px; }
   .player-row.mate .player-name-label { color: #166534; }
-  .drill-actions { display: flex; gap: 10px; margin-top: 16px; }
+  .drill-actions { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+  .drill-actions .btn-save { flex: 1; min-width: 120px; }
+  .drill-actions .btn-delete { min-width: 100px; }
   .btn-save {
     flex: 1; padding: 12px; background: #1a3a5c; color: #fff;
     border: none; border-radius: 6px; font-size: 15px; font-weight: 600;
@@ -122,7 +127,10 @@
   .scoreboard-card .drill-score-chip.negative { background: #fee2e2; color: #dc2626; }
   .scoreboard-card .drill-score-chip.zero { background: #f1f5f9; color: #94a3b8; }
   .leader-badge { display: inline-block; background: #fbbf24; color: #1a1a2e; font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 8px; margin-left: 8px; }
-  .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -4px; padding: 0 4px; }
+  .table-wrapper::-webkit-scrollbar { height: 4px; }
+  .table-wrapper::-webkit-scrollbar-track { background: transparent; }
+  .table-wrapper::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
   table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 520px; }
   th { background: #f8fafc; padding: 10px 12px; text-align: center; font-size: 12px; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0; white-space: nowrap; }
   td { padding: 8px 12px; text-align: center; border-bottom: 1px solid #f1f5f9; }
@@ -138,11 +146,52 @@
   td.check-col.fail { color: #dc2626; }
   .empty-state { text-align: center; padding: 40px 20px; color: #5f6b7a; }
   .empty-state p { font-size: 15px; margin-bottom: 8px; }
-  @media (max-width: 500px) {
-    .container { padding: 16px 12px 80px; }
-    .card { padding: 16px; }
+  @media (max-width: 600px) {
+    .header { padding: 12px 16px; flex-wrap: wrap; gap: 8px; }
     .header h1 { font-size: 17px; }
+    .header-actions { gap: 8px; }
+    .btn-new-game { padding: 6px 12px; font-size: 13px; }
+    .container { padding: 16px 12px 80px; }
+    .card { padding: 16px; border-radius: 8px; }
+    .card-title { font-size: 16px; }
     .player-row-grid { gap: 8px; }
+    .player-count-selector { gap: 6px; }
+    .player-count-selector button { font-size: 14px; padding: 8px; }
+    .setup-grid.cols-4,
+    .setup-grid.cols-5,
+    .setup-grid.cols-6 { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .drill-actions { flex-direction: column; }
+    .drill-actions .btn-save,
+    .drill-actions .btn-delete { width: 100%; }
+    .btn-add-drill { padding: 12px; font-size: 15px; }
+    .scoreboard-card { padding: 14px; }
+    .scoreboard-card .player-header .score { font-size: 19px; }
+    table { font-size: 13px; min-width: 440px; }
+    th, td { padding: 6px 8px; }
+  }
+  @media (max-width: 400px) {
+    .header h1 { font-size: 15px; width: 100%; text-align: center; }
+    .header-actions { width: 100%; justify-content: center; }
+    .card { padding: 12px; }
+    .container { padding: 12px 8px 80px; }
+    .setup-grid.cols-4,
+    .setup-grid.cols-5,
+    .setup-grid.cols-6 { grid-template-columns: 1fr; }
+    .player-row .player-name-label { font-size: 13px; }
+    .player-row-grid input[type="number"] { padding: 8px; font-size: 14px; }
+    .player-row-grid .field label,
+    .player-row-grid .mate-check label { font-size: 11px; }
+    .scoreboard-card .player-header .name { font-size: 14px; }
+    .scoreboard-card .player-header .score { font-size: 17px; }
+    .drill-result-row { font-size: 13px; flex-wrap: wrap; gap: 4px; }
+    table { font-size: 12px; min-width: 320px; }
+    th, td { padding: 4px 6px; }
+    .btn-primary { font-size: 15px; padding: 10px; }
+    .btn-save { font-size: 14px; padding: 10px; }
+  }
+  @media (max-width: 360px) {
+    table { font-size: 11px; min-width: 280px; }
+    th, td { padding: 3px 4px; }
   }
 </style>
 </head>
@@ -176,12 +225,12 @@
   <!-- Game Screen -->
   <div id="gameScreen" class="hidden">
     <div id="drillsContainer"></div>
-    <button class="btn-add-drill hidden" id="btnAddDrill">+ Add Drill</button>
+    <button class="btn-add-drill hidden" id="btnAddDrill">+ Add Deal</button>
     <div id="scoreboardSection" class="hidden">
       <div class="section-label" style="margin-bottom:12px;">Scoreboard</div>
       <div id="scoreboardStandings"></div>
       <div class="card" id="drillBreakdownCard">
-        <div class="card-title" style="font-size:15px;">Drill Breakdown</div>
+        <div class="card-title" style="font-size:15px;">Deal Breakdown</div>
         <div class="table-wrapper">
           <table id="breakdownTable">
             <thead id="breakdownHead"></thead>
@@ -324,7 +373,7 @@
       titleRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;';
       const title = document.createElement('div');
       title.style.cssText = 'font-size:17px;font-weight:700;color:#1a3a5c;';
-      title.textContent = 'Drill ' + (idx + 1);
+      title.textContent = 'Deal ' + (idx + 1);
       if (isSaved) {
         const badge = document.createElement('span');
         badge.className = 'saved-badge';
@@ -360,7 +409,7 @@
           if (isMate) {
             const tag = document.createElement('span');
             tag.className = 'mate-tag';
-            tag.textContent = ' (mate)';
+            tag.textContent = ' (made)';
             nameSpan.appendChild(tag);
           }
           const valSpan = document.createElement('span');
@@ -440,7 +489,7 @@
           const mateCheck = document.createElement('div');
           mateCheck.className = 'mate-check';
           const mateLabel = document.createElement('label');
-          mateLabel.textContent = 'Mate';
+          mateLabel.textContent = 'Made';
           const cb = document.createElement('input');
           cb.type = 'checkbox';
           cb.id = 'dm_' + idx + '_' + i;
@@ -479,7 +528,7 @@
         actions.className = 'drill-actions';
         const saveBtn = document.createElement('button');
         saveBtn.className = 'btn-save';
-        saveBtn.textContent = 'Save Drill';
+        saveBtn.textContent = 'Save Deal';
         saveBtn.addEventListener('click', () => saveDrill(idx));
         const cancelBtn = document.createElement('button');
         cancelBtn.className = 'btn-delete';
@@ -528,7 +577,7 @@
   }
 
   function deleteDrill(idx) {
-    if (!confirm('Delete this drill? This cannot be undone.')) return;
+    if (!confirm('Delete this deal? This cannot be undone.')) return;
     state.drills.splice(idx, 1);
     state.editingIdx = -1;
     renderDrills();
@@ -541,7 +590,7 @@
 
     // Validate mate
     if (drill.mateIdx === null || drill.mateIdx === undefined) {
-      errorDiv.textContent = 'Please select a mate (winner) for this drill.';
+      errorDiv.textContent = 'Please select a made (winner) for this deal.';
       return;
     }
 
@@ -629,7 +678,7 @@
     for (let i = 0; i < state.playerCount; i++) {
       headHtml += '<th>' + (state.playerNames[i] || ('P' + (i+1))) + '</th>';
     }
-    headHtml += '<th>Mate</th><th>✓ Zero-Sum</th></tr>';
+      headHtml += '<th>Made</th><th>✓ Zero-Sum</th></tr>';
     thead.innerHTML = headHtml;
 
     // Body
@@ -640,7 +689,7 @@
     state.drills.forEach((d, idx) => {
       if (!d.saved) return;
       const r = d.results || computeDrill(d);
-      bodyHtml += '<tr><td style="font-weight:600;text-align:left;">Drill ' + (idx + 1) + '</td>';
+      bodyHtml += '<tr><td style="font-weight:600;text-align:left;">Deal ' + (idx + 1) + '</td>';
       let sum = 0;
       for (let i = 0; i < state.playerCount; i++) {
         const v = r[i];
