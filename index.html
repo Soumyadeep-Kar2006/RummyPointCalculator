@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rummy Point Calculator</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #ebf0f5; color: #1a1a2e; min-height: 100vh;
+  }
+  .header {
+    background: #fff; border-bottom: 1px solid #dce1e8; padding: 16px 24px;
+    display: flex; justify-content: space-between; align-items: center;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .header h1 { font-size: 20px; font-weight: 700; color: #1a3a5c; }
+  .header-actions { display: flex; align-items: center; gap: 12px; }
+  .save-indicator {
+    font-size: 13px; color: #2e7d32; opacity: 0; transition: opacity 0.3s;
+    background: #e8f5e9; padding: 4px 12px; border-radius: 12px;
+  }
+  .save-indicator.visible { opacity: 1; }
+  .btn-new-game { background: none; border: 1px solid #d32f2f; color: #d32f2f; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; min-height: 44px; }
+  .btn-new-game:hover { background: #ffebee; }
+  .container { max-width: 900px; margin: 0 auto; padding: 24px 16px 80px; }
+  .card { background: #fff; border-radius: 10px; border: 1px solid #dce1e8; padding: 24px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,.04); }
+  .card-title { font-size: 18px; font-weight: 700; margin-bottom: 20px; color: #1a3a5c; }
+  .card-subtitle { font-size: 14px; color: #5f6b7a; margin-bottom: 16px; font-weight: 500; }
+  .setup-grid { display: grid; gap: 12px; margin-bottom: 20px; }
+  .setup-grid.cols-4 { grid-template-columns: repeat(2, 1fr); }
+  .setup-grid.cols-5 { grid-template-columns: repeat(2, 1fr); }
+  .setup-grid.cols-6 { grid-template-columns: repeat(2, 1fr); }
+  @media (min-width: 600px) {
+    .setup-grid.cols-4 { grid-template-columns: repeat(2, 1fr); }
+    .setup-grid.cols-5 { grid-template-columns: 1fr 1fr 1fr 1fr 1fr; }
+    .setup-grid.cols-6 { grid-template-columns: repeat(3, 1fr); }
+  }
+  .setup-grid label { font-size: 13px; font-weight: 600; color: #2c3e50; margin-bottom: 4px; display: block; }
+  .setup-grid input[type="text"] {
+    width: 100%; padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px;
+    font-size: 15px; min-height: 44px; outline: none; transition: border-color 0.2s;
+  }
+  .setup-grid input[type="text"]:focus { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,.15); }
+  .player-count-selector { display: flex; gap: 8px; margin-bottom: 20px; }
+  .player-count-selector button {
+    flex: 1; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px;
+    background: #fff; font-size: 15px; font-weight: 600; cursor: pointer; min-height: 44px;
+    transition: all 0.15s; color: #2c3e50;
+  }
+  .player-count-selector button.active { background: #1a3a5c; color: #fff; border-color: #1a3a5c; }
+  .player-count-selector button:hover:not(.active) { background: #f1f5f9; }
+  .btn-primary {
+    width: 100%; padding: 12px; background: #1a3a5c; color: #fff;
+    border: none; border-radius: 6px; font-size: 16px; font-weight: 700;
+    cursor: pointer; min-height: 48px; transition: background 0.15s;
+  }
+  .btn-primary:hover { background: #0f2a44; }
+  .btn-primary:disabled { background: #94a3b8; cursor: not-allowed; }
+  .hidden { display: none !important; }
+  .section-label { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: #5f6b7a; font-weight: 700; margin-bottom: 8px; }
+  .player-row { display: grid; gap: 12px; padding-bottom: 16px; margin-bottom: 16px; border-bottom: 1px solid #eef2f6; }
+  .player-row:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+  .player-row.mate { background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 12px; margin: -12px; margin-bottom: 4px; }
+  .player-row.mate + .player-row.mate { margin-top: -12px; }
+  .player-row.mate:last-child { margin-bottom: -12px; }
+  .player-row-grid { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 10px; align-items: end; }
+  @media (max-width: 500px) { .player-row-grid { grid-template-columns: 1fr 1fr; } }
+  .player-row-grid .field { display: flex; flex-direction: column; gap: 4px; }
+  .player-row-grid .field label { font-size: 12px; font-weight: 600; color: #475569; }
+  .player-row-grid input[type="number"] {
+    width: 100%; padding: 10px 10px; border: 1px solid #cbd5e1; border-radius: 6px;
+    font-size: 15px; min-height: 44px; outline: none; transition: border-color 0.2s;
+  }
+  .player-row-grid input[type="number"]:focus { border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,.15); }
+  .player-row-grid .mate-check { display: flex; flex-direction: column; gap: 4px; align-items: center; }
+  .player-row-grid .mate-check label { font-size: 12px; font-weight: 600; color: #475569; }
+  .player-row-grid input[type="checkbox"] { width: 22px; height: 22px; cursor: pointer; accent-color: #16a34a; min-height: 44px; min-width: 44px; }
+  .player-row .player-name-label { font-size: 14px; font-weight: 700; color: #1e293b; margin-bottom: 8px; }
+  .player-row.mate .player-name-label { color: #166534; }
+  .drill-actions { display: flex; gap: 10px; margin-top: 16px; }
+  .btn-save {
+    flex: 1; padding: 12px; background: #1a3a5c; color: #fff;
+    border: none; border-radius: 6px; font-size: 15px; font-weight: 600;
+    cursor: pointer; min-height: 44px; transition: background 0.15s;
+  }
+  .btn-save:hover { background: #0f2a44; }
+  .btn-delete {
+    padding: 12px 20px; background: #fff; color: #d32f2f;
+    border: 1px solid #fecaca; border-radius: 6px; font-size: 15px; font-weight: 600;
+    cursor: pointer; min-height: 44px; transition: all 0.15s;
+  }
+  .btn-delete:hover { background: #fef2f2; }
+  .btn-add-drill {
+    width: 100%; padding: 14px; background: #fff; color: #1a3a5c;
+    border: 2px dashed #cbd5e1; border-radius: 8px; font-size: 16px; font-weight: 700;
+    cursor: pointer; min-height: 52px; transition: all 0.15s; margin-bottom: 20px;
+  }
+  .btn-add-drill:hover { border-color: #1a3a5c; background: #f8fafc; }
+  .error-msg { color: #d32f2f; font-size: 13px; font-weight: 500; margin-top: 8px; min-height: 20px; }
+  .saved-badge { display: inline-block; background: #e8f5e9; color: #2e7d32; font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 10px; margin-left: 8px; }
+  .result-value { font-size: 15px; font-weight: 700; }
+  .result-value.positive { color: #16a34a; }
+  .result-value.negative { color: #dc2626; }
+  .result-value.zero { color: #94a3b8; }
+  .drill-results { margin-top: 12px; }
+  .drill-result-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; border-bottom: 1px solid #f1f5f9; }
+  .drill-result-row:last-child { border-bottom: none; }
+  .drill-result-row .player-name { font-weight: 500; color: #334155; }
+  .drill-result-row .player-name .mate-tag { color: #16a34a; font-weight: 600; }
+  .scoreboard-card { background: #fff; border-radius: 10px; border: 1px solid #dce1e8; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.04); }
+  .scoreboard-card .player-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .scoreboard-card .player-header .name { font-size: 16px; font-weight: 700; }
+  .scoreboard-card .player-header .score { font-size: 22px; font-weight: 700; }
+  .scoreboard-card .player-header .score.positive { color: #16a34a; }
+  .scoreboard-card .player-header .score.negative { color: #dc2626; }
+  .scoreboard-card .player-header .score.zero { color: #94a3b8; }
+  .scoreboard-card .drill-scores { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+  .scoreboard-card .drill-score-chip { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 8px; background: #f1f5f9; }
+  .scoreboard-card .drill-score-chip.positive { background: #dcfce7; color: #16a34a; }
+  .scoreboard-card .drill-score-chip.negative { background: #fee2e2; color: #dc2626; }
+  .scoreboard-card .drill-score-chip.zero { background: #f1f5f9; color: #94a3b8; }
+  .leader-badge { display: inline-block; background: #fbbf24; color: #1a1a2e; font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 8px; margin-left: 8px; }
+  .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 520px; }
+  th { background: #f8fafc; padding: 10px 12px; text-align: center; font-size: 12px; font-weight: 700; color: #475569; border-bottom: 2px solid #e2e8f0; white-space: nowrap; }
+  td { padding: 8px 12px; text-align: center; border-bottom: 1px solid #f1f5f9; }
+  tr:last-child td { border-bottom: none; }
+  td.positive { color: #16a34a; font-weight: 600; }
+  td.negative { color: #dc2626; font-weight: 600; }
+  td.zero { color: #94a3b8; }
+  td.mate-cell { background: #f0fdf4; }
+  td.total-row { border-top: 2px solid #e2e8f0; font-weight: 700; background: #f8fafc; }
+  td.grand-total { border-top: 3px double #1a3a5c; font-weight: 800; background: #f1f5f9; }
+  td.check-col { font-size: 18px; }
+  td.check-col.pass { color: #16a34a; }
+  td.check-col.fail { color: #dc2626; }
+  .empty-state { text-align: center; padding: 40px 20px; color: #5f6b7a; }
+  .empty-state p { font-size: 15px; margin-bottom: 8px; }
+  @media (max-width: 500px) {
+    .container { padding: 16px 12px 80px; }
+    .card { padding: 16px; }
+    .header h1 { font-size: 17px; }
+    .player-row-grid { gap: 8px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Rummy Point Calculator</h1>
+  <div class="header-actions">
+    <span class="save-indicator" id="saveIndicator">Saved automatically</span>
+    <button class="btn-new-game" id="btnNewGame">New Game</button>
+  </div>
+</div>
+
+<div class="container">
+  <!-- Setup Screen -->
+  <div id="setupScreen">
+    <div class="card">
+      <div class="card-title">Game Setup</div>
+      <div class="card-subtitle">Number of players</div>
+      <div class="player-count-selector" id="playerCountSelector">
+        <button data-count="4">4</button>
+        <button data-count="5">5</button>
+        <button data-count="6">6</button>
+      </div>
+      <div class="card-subtitle">Player Names</div>
+      <div class="setup-grid cols-4" id="nameInputs"></div>
+      <button class="btn-primary" id="btnStartGame">Start Game</button>
+    </div>
+  </div>
+
+  <!-- Game Screen -->
+  <div id="gameScreen" class="hidden">
+    <div id="drillsContainer"></div>
+    <button class="btn-add-drill hidden" id="btnAddDrill">+ Add Drill</button>
+    <div id="scoreboardSection" class="hidden">
+      <div class="section-label" style="margin-bottom:12px;">Scoreboard</div>
+      <div id="scoreboardStandings"></div>
+      <div class="card" id="drillBreakdownCard">
+        <div class="card-title" style="font-size:15px;">Drill Breakdown</div>
+        <div class="table-wrapper">
+          <table id="breakdownTable">
+            <thead id="breakdownHead"></thead>
+            <tbody id="breakdownBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  // ─── State ──────────────────────────────────────────────────────
+  let state = {
+    playerCount: 4,
+    playerNames: ['','','',''],
+    drills: [],       // { values: {}, points: {}, mateIdx: null, saved: false }
+    editingIdx: -1
+  };
+
+  const STORAGE_KEY = 'bridge_point_calc_state';
+
+  // ─── Persistence ───────────────────────────────────────────────
+  function saveState() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
+    showSaveIndicator();
+  }
+
+  function loadState() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.playerNames && parsed.drills) {
+          state = parsed;
+          return true;
+        }
+      }
+    } catch(e) {}
+    return false;
+  }
+
+  function showSaveIndicator() {
+    const el = document.getElementById('saveIndicator');
+    el.classList.add('visible');
+    clearTimeout(el._timer);
+    el._timer = setTimeout(() => el.classList.remove('visible'), 2000);
+  }
+
+  // ─── Scoring ───────────────────────────────────────────────────
+  function computeDrill(drill) {
+    const n = state.playerCount;
+    const values = drill.values;
+    const points = drill.points;
+    const mateIdx = drill.mateIdx;
+    const results = {};
+    let sumVals = 0;
+    for (let i = 0; i < n; i++) {
+      sumVals += (values[i] || 0);
+    }
+    let sumOtherPoints = 0;
+    for (let i = 0; i < n; i++) {
+      if (i !== mateIdx) sumOtherPoints += (points[i] || 0);
+    }
+    for (let i = 0; i < n; i++) {
+      const vi = values[i] || 0;
+      const hi = points[i] || 0;
+      let r;
+      if (i === mateIdx) {
+        r = vi * n - sumVals + sumOtherPoints;
+      } else {
+        r = vi * n - sumVals - hi;
+      }
+      results[i] = r;
+    }
+    return results;
+  }
+
+  function computeCumulative() {
+    const totals = {};
+    for (let i = 0; i < state.playerCount; i++) totals[i] = 0;
+    state.drills.forEach(d => {
+      if (!d.saved) return;
+      const r = d.results || computeDrill(d);
+      for (let i = 0; i < state.playerCount; i++) {
+        totals[i] += r[i];
+      }
+    });
+    return totals;
+  }
+
+  function getLeaderIdx(totals) {
+    let best = -Infinity, idx = -1;
+    for (let i = 0; i < state.playerCount; i++) {
+      if (totals[i] > best) { best = totals[i]; idx = i; }
+    }
+    return idx;
+  }
+
+  // ─── Setup Screen ──────────────────────────────────────────────
+  function renderSetup() {
+    const sel = document.getElementById('playerCountSelector');
+    const btns = sel.querySelectorAll('button');
+    btns.forEach(b => {
+      b.classList.toggle('active', parseInt(b.dataset.count) === state.playerCount);
+    });
+    const grid = document.getElementById('nameInputs');
+    grid.className = 'setup-grid cols-' + state.playerCount;
+    grid.innerHTML = '';
+    for (let i = 0; i < state.playerCount; i++) {
+      const div = document.createElement('div');
+      const label = document.createElement('label');
+      label.textContent = 'Player ' + (i + 1);
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.placeholder = 'Enter name';
+      input.value = state.playerNames[i] || '';
+      input.id = 'pname_' + i;
+      input.addEventListener('input', () => {
+        state.playerNames[i] = input.value.trim();
+      });
+      div.appendChild(label);
+      div.appendChild(input);
+      grid.appendChild(div);
+    }
+  }
+
+  // ─── Drill Entry ───────────────────────────────────────────────
+  function renderDrills() {
+    const container = document.getElementById('drillsContainer');
+    container.innerHTML = '';
+    state.drills.forEach((drill, idx) => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      const isEditing = idx === state.editingIdx;
+      const isSaved = drill.saved;
+
+      const titleRow = document.createElement('div');
+      titleRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;';
+      const title = document.createElement('div');
+      title.style.cssText = 'font-size:17px;font-weight:700;color:#1a3a5c;';
+      title.textContent = 'Drill ' + (idx + 1);
+      if (isSaved) {
+        const badge = document.createElement('span');
+        badge.className = 'saved-badge';
+        badge.textContent = 'Saved';
+        title.appendChild(badge);
+      }
+      titleRow.appendChild(title);
+
+      if (isEditing && !isSaved) {
+        const delBtn = document.createElement('button');
+        delBtn.className = 'btn-delete';
+        delBtn.textContent = 'Delete';
+        delBtn.style.cssText = 'padding:6px 14px;font-size:13px;min-height:36px;';
+        delBtn.addEventListener('click', () => deleteDrill(idx));
+        titleRow.appendChild(delBtn);
+      }
+      card.appendChild(titleRow);
+
+      if (isSaved && !isEditing) {
+        // Saved drill view
+        const results = drill.results || computeDrill(drill);
+        const resDiv = document.createElement('div');
+        resDiv.className = 'drill-results';
+        for (let i = 0; i < state.playerCount; i++) {
+          const row = document.createElement('div');
+          row.className = 'drill-result-row';
+          const val = results[i];
+          const valClass = val > 0 ? 'positive' : (val < 0 ? 'negative' : 'zero');
+          const isMate = i === drill.mateIdx;
+          const nameSpan = document.createElement('span');
+          nameSpan.className = 'player-name';
+          nameSpan.textContent = state.playerNames[i] || ('Player ' + (i+1));
+          if (isMate) {
+            const tag = document.createElement('span');
+            tag.className = 'mate-tag';
+            tag.textContent = ' (mate)';
+            nameSpan.appendChild(tag);
+          }
+          const valSpan = document.createElement('span');
+          valSpan.className = 'result-value ' + valClass;
+          valSpan.textContent = (val >= 0 ? '+' : '') + val.toFixed(1);
+          row.appendChild(nameSpan);
+          row.appendChild(valSpan);
+          resDiv.appendChild(row);
+        }
+        card.appendChild(resDiv);
+
+        const actionRow = document.createElement('div');
+        actionRow.style.cssText = 'display:flex;gap:8px;margin-top:12px;';
+        const editBtn = document.createElement('button');
+        editBtn.textContent = 'Edit';
+        editBtn.style.cssText = 'padding:6px 14px;font-size:13px;min-height:36px;border:1px solid #cbd5e1;background:#fff;border-radius:6px;cursor:pointer;font-weight:600;color:#2c3e50;';
+        editBtn.addEventListener('click', () => editDrill(idx));
+        const delBtn = document.createElement('button');
+        delBtn.className = 'btn-delete';
+        delBtn.textContent = 'Delete';
+        delBtn.style.cssText = 'padding:6px 14px;font-size:13px;min-height:36px;';
+        delBtn.addEventListener('click', () => deleteDrill(idx));
+        actionRow.appendChild(editBtn);
+        actionRow.appendChild(delBtn);
+        card.appendChild(actionRow);
+      }
+
+      if (isEditing && !isSaved) {
+        // Editing form
+        const form = document.createElement('div');
+        for (let i = 0; i < state.playerCount; i++) {
+          const row = document.createElement('div');
+          row.className = 'player-row';
+          const isMate = drill.mateIdx === i;
+          if (isMate) row.classList.add('mate');
+
+          const nameLabel = document.createElement('div');
+          nameLabel.className = 'player-name-label';
+          nameLabel.textContent = state.playerNames[i] || ('Player ' + (i+1));
+          row.appendChild(nameLabel);
+
+          const grid = document.createElement('div');
+          grid.className = 'player-row-grid';
+
+          const valField = document.createElement('div');
+          valField.className = 'field';
+          const valLabel = document.createElement('label');
+          valLabel.textContent = 'Value';
+          const valInput = document.createElement('input');
+          valInput.type = 'number';
+          valInput.step = 'any';
+          valInput.id = 'dv_' + idx + '_' + i;
+          valInput.value = drill.values[i] !== undefined && drill.values[i] !== null ? drill.values[i] : '';
+          valInput.placeholder = '0';
+          valInput.addEventListener('input', () => {
+            drill.values[i] = valInput.value === '' ? null : parseFloat(valInput.value);
+          });
+          valField.appendChild(valLabel);
+          valField.appendChild(valInput);
+
+          const ptsField = document.createElement('div');
+          ptsField.className = 'field';
+          const ptsLabel = document.createElement('label');
+          ptsLabel.textContent = 'Points';
+          const ptsInput = document.createElement('input');
+          ptsInput.type = 'number';
+          ptsInput.step = 'any';
+          ptsInput.id = 'dp_' + idx + '_' + i;
+          ptsInput.value = drill.points[i] !== undefined && drill.points[i] !== null ? drill.points[i] : '';
+          ptsInput.placeholder = 'null';
+          ptsInput.addEventListener('input', () => {
+            drill.points[i] = ptsInput.value === '' ? null : parseFloat(ptsInput.value);
+          });
+          ptsField.appendChild(ptsLabel);
+          ptsField.appendChild(ptsInput);
+
+          const mateCheck = document.createElement('div');
+          mateCheck.className = 'mate-check';
+          const mateLabel = document.createElement('label');
+          mateLabel.textContent = 'Mate';
+          const cb = document.createElement('input');
+          cb.type = 'checkbox';
+          cb.id = 'dm_' + idx + '_' + i;
+          cb.checked = isMate;
+          cb.addEventListener('change', () => {
+            if (cb.checked) {
+              // uncheck all others
+              for (let j = 0; j < state.playerCount; j++) {
+                const otherCb = document.getElementById('dm_' + idx + '_' + j);
+                if (otherCb) otherCb.checked = (j === i);
+              }
+              drill.mateIdx = i;
+              // re-render to update mate highlighting
+              renderDrills();
+            } else {
+              drill.mateIdx = null;
+            }
+          });
+          mateCheck.appendChild(mateLabel);
+          mateCheck.appendChild(cb);
+
+          grid.appendChild(valField);
+          grid.appendChild(ptsField);
+          grid.appendChild(mateCheck);
+          row.appendChild(grid);
+          form.appendChild(row);
+        }
+        card.appendChild(form);
+
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'error-msg';
+        errorDiv.id = 'err_' + idx;
+        card.appendChild(errorDiv);
+
+        const actions = document.createElement('div');
+        actions.className = 'drill-actions';
+        const saveBtn = document.createElement('button');
+        saveBtn.className = 'btn-save';
+        saveBtn.textContent = 'Save Drill';
+        saveBtn.addEventListener('click', () => saveDrill(idx));
+        const cancelBtn = document.createElement('button');
+        cancelBtn.className = 'btn-delete';
+        cancelBtn.textContent = 'Cancel';
+        cancelBtn.addEventListener('click', () => { state.editingIdx = -1; renderDrills(); });
+        actions.appendChild(saveBtn);
+        actions.appendChild(cancelBtn);
+        card.appendChild(actions);
+      }
+
+      container.appendChild(card);
+    });
+
+    // Add drill button
+    const addBtn = document.getElementById('btnAddDrill');
+    const hasUnsaved = state.drills.some(d => !d.saved);
+    if (state.drills.length > 0 && state.editingIdx === -1 && !hasUnsaved) {
+      addBtn.classList.remove('hidden');
+    } else {
+      addBtn.classList.add('hidden');
+    }
+
+    updateScoreboard();
+  }
+
+  // ─── Drill Actions ─────────────────────────────────────────────
+  function addDrill() {
+    const values = {};
+    const points = {};
+    for (let i = 0; i < state.playerCount; i++) {
+      values[i] = null;
+      points[i] = null;
+    }
+    state.drills.push({ values, points, mateIdx: null, saved: false, results: null });
+    state.editingIdx = state.drills.length - 1;
+    renderDrills();
+    saveState();
+  }
+
+  function editDrill(idx) {
+    const d = state.drills[idx];
+    d.saved = false;
+    d.results = null;
+    state.editingIdx = idx;
+    renderDrills();
+  }
+
+  function deleteDrill(idx) {
+    if (!confirm('Delete this drill? This cannot be undone.')) return;
+    state.drills.splice(idx, 1);
+    state.editingIdx = -1;
+    renderDrills();
+    saveState();
+  }
+
+  function saveDrill(idx) {
+    const drill = state.drills[idx];
+    const errorDiv = document.getElementById('err_' + idx);
+
+    // Validate mate
+    if (drill.mateIdx === null || drill.mateIdx === undefined) {
+      errorDiv.textContent = 'Please select a mate (winner) for this drill.';
+      return;
+    }
+
+    // Validate values
+    for (let i = 0; i < state.playerCount; i++) {
+      if (drill.values[i] === null || drill.values[i] === undefined || drill.values[i] === '') {
+        errorDiv.textContent = 'Please enter a value for ' + (state.playerNames[i] || 'Player ' + (i+1)) + '.';
+        return;
+      }
+    }
+
+    errorDiv.textContent = '';
+    const results = computeDrill(drill);
+    drill.results = results;
+    drill.saved = true;
+    state.editingIdx = -1;
+    renderDrills();
+    saveState();
+  }
+
+  // ─── Scoreboard ────────────────────────────────────────────────
+  function updateScoreboard() {
+    const section = document.getElementById('scoreboardSection');
+    const savedDrills = state.drills.filter(d => d.saved);
+    if (savedDrills.length === 0) {
+      section.classList.add('hidden');
+      return;
+    }
+    section.classList.remove('hidden');
+
+    const totals = computeCumulative();
+    const leaderIdx = getLeaderIdx(totals);
+
+    // Standings cards
+    const standingsEl = document.getElementById('scoreboardStandings');
+    standingsEl.innerHTML = '';
+    for (let i = 0; i < state.playerCount; i++) {
+      const card = document.createElement('div');
+      card.className = 'scoreboard-card';
+      const header = document.createElement('div');
+      header.className = 'player-header';
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'name';
+      nameSpan.textContent = state.playerNames[i] || ('Player ' + (i+1));
+      if (i === leaderIdx) {
+        const badge = document.createElement('span');
+        badge.className = 'leader-badge';
+        badge.textContent = 'Leader';
+        nameSpan.appendChild(badge);
+      }
+      const scoreSpan = document.createElement('span');
+      const s = totals[i];
+      scoreSpan.className = 'score ' + (s > 0 ? 'positive' : (s < 0 ? 'negative' : 'zero'));
+      scoreSpan.textContent = (s >= 0 ? '+' : '') + s.toFixed(1);
+      header.appendChild(nameSpan);
+      header.appendChild(scoreSpan);
+      card.appendChild(header);
+
+      // Drill chips
+      const chipsDiv = document.createElement('div');
+      chipsDiv.className = 'drill-scores';
+      state.drills.forEach(d => {
+        if (!d.saved) return;
+        const r = d.results || computeDrill(d);
+        const v = r[i];
+        const chip = document.createElement('span');
+        chip.className = 'drill-score-chip ' + (v > 0 ? 'positive' : (v < 0 ? 'negative' : 'zero'));
+        chip.textContent = (v >= 0 ? '+' : '') + v.toFixed(1);
+        chipsDiv.appendChild(chip);
+      });
+      card.appendChild(chipsDiv);
+      standingsEl.appendChild(card);
+    }
+
+    // Breakdown table
+    renderBreakdownTable(totals);
+  }
+
+  function renderBreakdownTable(totals) {
+    const thead = document.getElementById('breakdownHead');
+    const tbody = document.getElementById('breakdownBody');
+
+    // Head
+    let headHtml = '<tr><th>Drill</th>';
+    for (let i = 0; i < state.playerCount; i++) {
+      headHtml += '<th>' + (state.playerNames[i] || ('P' + (i+1))) + '</th>';
+    }
+    headHtml += '<th>Mate</th><th>✓ Zero-Sum</th></tr>';
+    thead.innerHTML = headHtml;
+
+    // Body
+    let bodyHtml = '';
+    let runningTotals = {};
+    for (let i = 0; i < state.playerCount; i++) runningTotals[i] = 0;
+
+    state.drills.forEach((d, idx) => {
+      if (!d.saved) return;
+      const r = d.results || computeDrill(d);
+      bodyHtml += '<tr><td style="font-weight:600;text-align:left;">Drill ' + (idx + 1) + '</td>';
+      let sum = 0;
+      for (let i = 0; i < state.playerCount; i++) {
+        const v = r[i];
+        runningTotals[i] += v;
+        sum += v;
+        const cls = v > 0 ? 'positive' : (v < 0 ? 'negative' : 'zero');
+        const isMate = i === d.mateIdx;
+        bodyHtml += '<td class="' + cls + (isMate ? ' mate-cell' : '') + '">' + (v >= 0 ? '+' : '') + v.toFixed(1) + '</td>';
+      }
+      const mateName = d.mateIdx !== null ? (state.playerNames[d.mateIdx] || ('P' + (d.mateIdx+1))) : '-';
+      bodyHtml += '<td>' + mateName + '</td>';
+      bodyHtml += '<td class="check-col ' + (Math.abs(sum) < 0.001 ? 'pass' : 'fail') + '">' + (Math.abs(sum) < 0.001 ? '✓' : '✗') + '</td></tr>';
+
+      // Running total row
+      bodyHtml += '<tr><td style="font-weight:600;color:#475569;text-align:left;font-size:12px;">Running</td>';
+      let runSum = 0;
+      for (let i = 0; i < state.playerCount; i++) {
+        const v = runningTotals[i];
+        runSum += v;
+        const cls = v > 0 ? 'positive' : (v < 0 ? 'negative' : 'zero');
+        bodyHtml += '<td class="' + cls + ' total-row">' + (v >= 0 ? '+' : '') + v.toFixed(1) + '</td>';
+      }
+      bodyHtml += '<td class="total-row">-</td>';
+      bodyHtml += '<td class="total-row check-col ' + (Math.abs(runSum) < 0.001 ? 'pass' : 'fail') + '">' + (Math.abs(runSum) < 0.001 ? '✓' : '✗') + '</td></tr>';
+    });
+
+    // Grand total row
+    bodyHtml += '<tr><td style="font-weight:800;text-align:left;">Grand Total</td>';
+    let gtSum = 0;
+    for (let i = 0; i < state.playerCount; i++) {
+      const v = totals[i];
+      gtSum += v;
+      const cls = v > 0 ? 'positive' : (v < 0 ? 'negative' : 'zero');
+      bodyHtml += '<td class="' + cls + ' grand-total">' + (v >= 0 ? '+' : '') + v.toFixed(1) + '</td>';
+    }
+    bodyHtml += '<td class="grand-total">-</td>';
+    bodyHtml += '<td class="grand-total check-col ' + (Math.abs(gtSum) < 0.001 ? 'pass' : 'fail') + '">' + (Math.abs(gtSum) < 0.001 ? '✓' : '✗') + '</td></tr>';
+
+    tbody.innerHTML = bodyHtml;
+  }
+
+  // ─── Navigation ────────────────────────────────────────────────
+  function showSetup() {
+    document.getElementById('setupScreen').classList.remove('hidden');
+    document.getElementById('gameScreen').classList.add('hidden');
+    renderSetup();
+  }
+
+  function showGame() {
+    document.getElementById('setupScreen').classList.add('hidden');
+    document.getElementById('gameScreen').classList.remove('hidden');
+    renderDrills();
+  }
+
+  // ─── Init ──────────────────────────────────────────────────────
+  function init() {
+    // Player count selector
+    const sel = document.getElementById('playerCountSelector');
+    sel.addEventListener('click', (e) => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      const count = parseInt(btn.dataset.count);
+      state.playerCount = count;
+      // Adjust names array
+      while (state.playerNames.length < count) state.playerNames.push('');
+      while (state.playerNames.length > count) state.playerNames.pop();
+      renderSetup();
+    });
+
+    // Start game
+    document.getElementById('btnStartGame').addEventListener('click', () => {
+      // Validate names
+      for (let i = 0; i < state.playerCount; i++) {
+        if (!state.playerNames[i] || state.playerNames[i].trim() === '') {
+          alert('Please enter a name for Player ' + (i + 1) + '.');
+          return;
+        }
+      }
+      showGame();
+      // Auto-add first drill
+      addDrill();
+    });
+
+    // New game
+    document.getElementById('btnNewGame').addEventListener('click', () => {
+      if (!confirm('Start a new game? All current data will be lost.')) return;
+      state = {
+        playerCount: 4,
+        playerNames: ['','','',''],
+        drills: [],
+        editingIdx: -1
+      };
+      saveState();
+      showSetup();
+    });
+
+    // Add drill
+    document.getElementById('btnAddDrill').addEventListener('click', addDrill);
+
+    // Restore or show setup
+    if (loadState() && state.drills.length > 0) {
+      // Check if any drill is being edited
+      if (state.editingIdx === -1) {
+        showGame();
+      } else {
+        // Resume editing
+        showGame();
+        renderDrills();
+      }
+    } else {
+      // Fallback if state is corrupted or empty
+      if (!state.playerNames || state.playerNames.length === 0) {
+        state.playerNames = ['','','',''];
+        state.playerCount = 4;
+      }
+      showSetup();
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
+})();
+</script>
+
+<footer style="text-align:center;padding:20px 16px;font-size:13px;color:#5f6b7a;border-top:1px solid #dce1e8;background:#fff;">
+  Designed and developed by Soumyadeep Kar
+</footer>
+</body>
+</html>
